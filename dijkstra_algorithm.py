@@ -10,43 +10,139 @@ Original file is located at
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import heapq as heap
+import heapq
 
-file = "maze.png"
+image_path = "maze.png"
 # file = 'maze5.jpg'
+start = (5, 220)
+end = (25, 5)
 
-img = cv2.imread(file) # read an image from a file using
-cv2.circle(img,(5,220), 3, (255,0,0), -1) # add a circle at (5, 220)
-cv2.circle(img, (25,5), 3, (0,0,255), -1) # add a circle at (5,5)
-plt.figure(figsize=(7,7))
-plt.imshow(img) # show the image
-img = cv2.imread(file)
+img = cv2.imread(image_path)  # read an image from a file using
+cv2.circle(img, start, 3, (255, 0, 0), -1)  # add a circle at (5, 220)
+cv2.circle(img, end, 3, (0, 0, 255), -1)  # add a circle at (25,5)
+plt.figure(figsize=(7, 7))
+plt.imshow(img)  # show the image
+img = cv2.imread(image_path)
 plt.show()
 
-#img.shape()
+
+# img.shape()
 
 # Your Code Should Be Here
 
 
-def convert_image_to_binary_matrix(img):
-    any_matrix = np.any(img==255, axis=-1)
-    return any_matrix
+def convert_image_to_bool_matrix(img):
+    bool_matrix = np.any(img == 255, axis=-1)
+    return bool_matrix
 
 
-path = ...
+def get_rows_and_cols(matrix):
+    rows, cols = matrix.shape
+    return rows, cols
 
-def drawPath(img,path, thickness=1):
+
+def initialize_distances(matrix, starting_point):
+    rows, cols = get_rows_and_cols(matrix)
+    distances = np.full((rows, cols), np.inf)
+    distances[starting_point] = 0
+    return distances
+
+
+def initialize_predecessors(matrix):
+    return np.full(matrix.shape, None, dtype=object)
+
+
+def is_valid_position(matrix, position):
+    rows, cols = matrix.shape
+    return 0 <= position[0] < rows and 0 <= position[1] < cols
+
+
+def is_walkable(matrix, position):
+    return matrix[position]
+
+
+def get_neighbors(matrix, position):
+    neighbors = []
+    for dx in [1, 0, -1]:
+        for dy in [1, 0, -1]:
+            if dx != 0 and dy != 0:
+                new_position = (position[0] + dx, position[1] + dy)
+                if is_valid_position(matrix, new_position) and is_walkable(matrix, new_position):
+                    neighbors.append(new_position)
+    return neighbors
+
+
+def dijkstra(matrix, start, end):
+    distances = initialize_distances(matrix, start)
+    predecessors = initialize_predecessors(matrix)
+    shortest_distance_from_start = [(0, start)]
+    visited = set()
+    while shortest_distance_from_start:
+        current_distance, current_position = heapq.heappop(shortest_distance_from_start)
+
+        # print(f"Current position: {current_position}, End: {end}")  # Debug print
+        # print(f"Are they equal? {current_position == end}")  # Debug print
+
+        if current_position in visited:
+            continue
+
+        visited.add(current_position)
+
+        if current_position == (192,119):
+            print("DEBUG")
+
+        if current_position == end:
+            print("End reached!")  # Debug print
+            return reconstruct_path(predecessors, start, end)
+
+        for neighbor in get_neighbors(matrix, current_position):
+            distance = current_distance + 1
+            d_neighbor = distances[neighbor]
+            if distance < distances[neighbor]:
+                distances[neighbor] = distance
+                predecessors[neighbor] = current_position
+                heapq.heappush(shortest_distance_from_start, (distance, neighbor))
+    print("No path found")  # Debug print
+    return None
+
+
+def reconstruct_path(predecessors, start, end):
+    path = []
+    current = end
+    while current != start:
+        path.append(current)
+        current = predecessors[current]
+    path.append(start)
+    return path[::-1]
+
+
+def drawPath(img, path, line_thickness=1):
     '''path is a list of (x,y) tuples'''
-    x0,y0=path[0]
+    x0, y0 = path[0]
     for vertex in path[1:]:
-        x1,y1=vertex
-        cv2.line(img,(y0,x0),(y1,x1),(255,0,0),thickness)
-        x0,y0=vertex
+        x1, y1 = vertex
+        cv2.line(img, (y0, x0), (y1, x1), (255, 0, 0), line_thickness)
+        x0, y0 = vertex
 
-print(convert_image_to_binary_matrix(img))
-# drawPath(img,path)
-plt.figure(figsize=(7,7))
-# plt.imshow(img) # show the image on the screen
-# plt.text(0,0, convert_image_to_binary_matrix(img))
-# plt.show()
 
+def solve_and_draw_maze(image_path, start, end):
+    img = cv2.imread(image_path)
+    bool_matrix = convert_image_to_bool_matrix(img)
+
+    print(f"Start: {start}, End: {end}")  # Debug print
+    print(f"Is start walkable: {bool_matrix[start]}")  # Debug print
+    print(f"Is end walkable: {bool_matrix[end]}")  # Debug print
+
+    path = dijkstra(bool_matrix, start, end)
+    if path:
+        drawPath(img, path)
+        plt.figure(figsize=(7, 7))
+        plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        plt.title("Solved Maze")
+        plt.axis('off')
+        plt.show()
+    else:
+        print("No route found from the start point to the end point")
+
+
+solve_and_draw_maze(image_path, start, end)
