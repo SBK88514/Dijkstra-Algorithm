@@ -8,13 +8,35 @@ import tkinter as tk
 
 
 def convert_image_to_bool_matrix(img):
+    """
+    Converts an image to a boolean matrix where white pixels (255) represent open paths,
+    and all other pixels represent walls.
+    
+    Args:
+        img (numpy.ndarray): The input image.
+    
+    Returns:
+        numpy.ndarray: A boolean matrix where True represents open paths and False represents walls.
+    """
+
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     return gray == 255
 
 
 def get_neighbors(matrix, position):
+    """
+    Finds valid neighboring positions in the maze matrix.
+    
+    Args:
+        matrix (numpy.ndarray): The maze matrix.
+        position (tuple): The current position as (row, col).
+    
+    Returns:
+        list: A list of valid neighboring positions.
+    """
+
     neighbors = []
-    for dx, dy in [(1, 1), (-1, -1), (-1, 1), (1, -1), (-1, 0), (0, -1), (1, 0), (0, 1)]:  # Only four directions
+    for dx, dy in [(1, 1), (-1, -1), (-1, 1), (1, -1), (-1, 0), (0, -1), (1, 0), (0, 1)]: 
         new_position = (position[0] + dx, position[1] + dy)
         if 0 <= new_position[0] < matrix.shape[0] and 0 <= new_position[1] < matrix.shape[1]:
             if matrix[new_position]:
@@ -23,6 +45,18 @@ def get_neighbors(matrix, position):
 
 
 def dijkstra(matrix, start, end): # O((V +E) log V)
+    """
+    Implements Dijkstra's algorithm to find the shortest path in a boolean maze.
+    
+    Args:
+        matrix (numpy.ndarray): The maze matrix.
+        start (tuple): The starting position (row, col).
+        end (tuple): The ending position (row, col).
+    
+    Returns:
+        list: The shortest path as a list of positions, or None if no path is found.
+    """
+
     distances = np.full(matrix.shape, np.inf)
     distances[start] = 0
     predecessors = np.full(matrix.shape, None, dtype=object)
@@ -53,6 +87,17 @@ def dijkstra(matrix, start, end): # O((V +E) log V)
 
 
 def reconstruct_path(predecessors, start, end):
+     """
+    Reconstructs the shortest path from start to end using the predecessors matrix.
+    
+    Args:
+        predecessors (numpy.ndarray): The matrix storing the previous position for each visited node.
+        start (tuple): The starting position.
+        end (tuple): The ending position.
+    
+    Returns:
+        list: The shortest path as a list of positions.
+    """
     path = []
     current = end
     while current != start:
@@ -63,13 +108,29 @@ def reconstruct_path(predecessors, start, end):
 
 
 def drawPath(img, path, thickness=2):
+    """
+    Draws the computed path on the maze image.
+    
+    Args:
+        img (numpy.ndarray): The input maze image.
+        path (list): The list of positions in the shortest path.
+        thickness (int, optional): Thickness of the path lines. Defaults to 2.
+    """
     for i in range(len(path) - 1):
-        pt1 = (path[i][1], path[i][0])  # (col, row) for cv2.line
+        pt1 = (path[i][1], path[i][0])  
         pt2 = (path[i + 1][1], path[i + 1][0])
         cv2.line(img, pt1, pt2, (0, 0, 255), thickness)
 
 
 def solve_and_draw_maze(image_path, start, end):
+    """
+    Loads a maze image, solves it using Dijkstra's algorithm, and visualizes the solution.
+    
+    Args:
+        image_path (str): Path to the maze image file.
+        start (tuple): Starting position (row, col).
+        end (tuple): Ending position (row, col).
+    """
     img = cv2.imread(image_path)
     if img is None:
         # print(f"Failed to read the image from path: {image_path}")
